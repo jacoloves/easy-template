@@ -1,5 +1,5 @@
-use std::env;
-use std::os::unix::process;
+use std::io::Write;
+use std::{env, io};
 use std::path::Path;
 use std::fs;
 
@@ -55,7 +55,13 @@ fn main() {
 
         println!("template file copy done!!");
     } else if process_status == PROCESS_COPY_EXTENSION_WITHOUT {
-
+        // select dir
+        let (success, selected_file) = select_extension_dir();
+        if success {
+            println!("Selected file: {}", selected_file);
+        } else {
+            println!("Failed to select file.");
+        }
     }
 
 }
@@ -204,6 +210,59 @@ fn register_template_file(dirname: String, filename: String) -> bool {
             return false;
         }
     }
+}
+
+fn select_extension_dir() -> (bool, String) {
+    let template_dir = dirs::home_dir().unwrap().join(".template");
+
+    let entires = match fs::read_dir(&template_dir) {
+        Ok(entries) => entries,
+        Err(err) => {
+            println!("Failed to read .tempalte directoty: {}", err);
+            return (false, "".to_string());
+        }
+    };
+
+    let mut index = 1;
+    let mut entry_count = 0;
+    let mut file_paths: Vec<String> = Vec::new();
+
+    for entry in entires {
+        if let Ok(entry) = entry {
+            if let Some(name) = entry.file_name().to_str() {
+                println!("{}: {}", index, name);
+                index += 1;
+                entry_count += 1;
+                file_paths.push(entry.path().to_string_lossy().into_owned());
+            }
+        }
+    }
+
+    let selection = get_user_input("Enter the number: ").unwrap_or_else(|_| String::new());
+
+    let number = match selection.parse::<usize>() {
+        Ok(number) => number,
+        Err(_) => {
+            println!("Invalid input.");
+            return (false, "".to_string());
+        }
+    };
+
+    if number > entry_count || number <= 0 {
+        println!("Invalid number.");
+        return (false, "".to_string());
+    }
+
+    (true, file_paths[number - 1].clone())
+
+}
+
+fn get_user_input(prompt: &str) -> io::Result<String> {
+    print!("{}", prompt);
+    io::stdout().flush()?;
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+    Ok(input.trim().to_string())
 }
 
 
