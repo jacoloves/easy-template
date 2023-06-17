@@ -448,7 +448,7 @@ mod tests {
         }
 
 
-        let result = copy_template_file(tempalte_dirname, file_path.to_string());
+        let result = register_template_file(tempalte_dirname, file_path.to_string());
         let destination_path = extension_dir.join(file_path);
 
         assert_eq!(result, true);
@@ -457,5 +457,15 @@ mod tests {
         std::fs::remove_dir(destination_path.clone()).unwrap();
         std::fs::remove_dir(extension_dir.clone()).unwrap();
         std::fs::remove_dir(template_dir.clone()).unwrap();
+    }
+
+    #[test]
+    fn test_get_user_input() {
+        let input = "Hello Wolrd\n";
+        let mut stdin = std::io::Cursor::new(input);
+
+        let result = get_user_input("Enter your input:").unwrap();
+
+        assert_eq!(result, "Hello World");
     }
 }
