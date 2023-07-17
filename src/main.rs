@@ -56,9 +56,9 @@ fn main() {
         println!("template file copy done!!");
     } else if process_status == PROCESS_COPY_EXTENSION_WITHOUT {
         // select dir
-        let (success, selected_file) = select_extension_dir();
-        if success {
-            println!("Selected file: {}", selected_file);
+        let (proc, selected_file) = select_extension_dir();
+        if proc {
+            
         } else {
             println!("Failed to select file.");
         }
@@ -225,7 +225,7 @@ fn select_extension_dir() -> (bool, String) {
 
     let mut index = 1;
     let mut entry_count = 0;
-    let mut file_paths: Vec<String> = Vec::new();
+    let mut dir_paths: Vec<String> = Vec::new();
 
     for entry in entires {
         if let Ok(entry) = entry {
@@ -233,7 +233,7 @@ fn select_extension_dir() -> (bool, String) {
                 println!("{}: {}", index, name);
                 index += 1;
                 entry_count += 1;
-                file_paths.push(entry.path().to_string_lossy().into_owned());
+                dir_paths.push(entry.path().to_string_lossy().into_owned());
             }
         }
     }
@@ -253,7 +253,7 @@ fn select_extension_dir() -> (bool, String) {
         return (false, "".to_string());
     }
 
-    (true, file_paths[number - 1].clone())
+    (true, dir_paths[number - 1].clone())
 
 }
 
@@ -468,4 +468,36 @@ mod tests {
 
         assert_eq!(result, "Hello World");
     }
+
+    #[test]
+    fn test_select_extension_dir() {
+        // create template and exetend dir
+        let extension_dir = dirs::home_dir().unwrap().join(".template").join("txt");
+        if !extension_dir.exists() {
+            let template_dir = dirs::home_dir().unwrap().join(".template");
+            if template_dir.exists() {
+                if !create_extension_dir("txt".to_string()) {
+                    eprintln!("Failed to create extend dir");
+                }
+            } else {
+                if create_tempalte_dir() {
+                    if !create_extension_dir("txt".to_string()) {
+                        eprintln!("Failed to create extend dir");
+                    }
+                } else {
+                    eprintln!("Failed to create template dir");
+                }
+            }
+        }
+
+        // select_extension_dir test
+        let (proc, selected_dir) = select_extension_dir();
+        if proc {
+            let string_exetend_dir = extension_dir.to_string_lossy().into_owned();
+            assert_eq!(selected_dir, string_exetend_dir);
+        } else {
+            eprintln!("Failed to select dir")
+        }
+    }
+
 }
