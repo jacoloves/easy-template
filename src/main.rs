@@ -1,7 +1,7 @@
-use std::io::Write;
-use std::{env, io};
-use std::path::Path;
 use std::fs;
+use std::io::Write;
+use std::path::Path;
+use std::{env, io};
 
 // const
 const PROCESS_FAILED: i32 = 0;
@@ -56,14 +56,18 @@ fn main() {
         println!("template file copy done!!");
     } else if process_status == PROCESS_COPY_EXTENSION_WITHOUT {
         // select dir
-        let (proc, selected_file) = select_extension_dir();
+        let (proc, selected_dir) = select_extension_dir();
         if proc {
-            
+            let (proc, selected_file) = select_copy_file(selected_dir);
+            if proc {
+                println!("selected file: {}", selected_file);
+            } else {
+                println!("Failed to select file.");
+            }
         } else {
-            println!("Failed to select file.");
+            println!("Failed to select dir.");
         }
     }
-
 }
 
 fn check_template_dir() -> bool {
@@ -201,7 +205,10 @@ fn register_template_file(dirname: String, filename: String) -> bool {
     };
 
     let sorce_path = current_dir.join(filename.clone());
-    let destination_path = Path::new(&home_dir).join(".template").join(dirname).join(filename);
+    let destination_path = Path::new(&home_dir)
+        .join(".template")
+        .join(dirname)
+        .join(filename);
 
     match fs::copy(&sorce_path, &destination_path) {
         Ok(_) => true,
@@ -218,7 +225,7 @@ fn select_extension_dir() -> (bool, String) {
     let entires = match fs::read_dir(&template_dir) {
         Ok(entries) => entries,
         Err(err) => {
-            println!("Failed to read .tempalte directoty: {}", err);
+            println!("Failed to read .tempalte directory: {}", err);
             return (false, "".to_string());
         }
     };
@@ -254,7 +261,6 @@ fn select_extension_dir() -> (bool, String) {
     }
 
     (true, dir_paths[number - 1].clone())
-
 }
 
 fn get_user_input(prompt: &str) -> io::Result<String> {
@@ -265,6 +271,49 @@ fn get_user_input(prompt: &str) -> io::Result<String> {
     Ok(input.trim().to_string())
 }
 
+fn select_copy_file(dir_name: String) -> (bool, String) {
+    let path_buf_dir = Path::new(&dir_name).to_path_buf();
+
+    let files = match fs::read_dir(&path_buf_dir) {
+        Ok(files) => files,
+        Err(err) => {
+            println!("Failed to read extension directory: {}", err);
+            return (false, "".to_string());
+        }
+    };
+
+    let mut index = 1;
+    let mut file_count = 0;
+    let mut file_name_array: Vec<String> = Vec::new();
+
+    for file in files {
+        if let Ok(file) = file {
+            if let Some(name) = file.file_name().to_str() {
+                println!("{}: {}", index, name);
+                index += 1;
+                file_count += 1;
+                file_name_array.push(file.path().to_string_lossy().into_owned());
+            }
+        }
+    }
+
+    let selection = get_user_input("Enter the number: ").unwrap_or_else(|_| String::new());
+
+    let number = match selection.parse::<usize>() {
+        Ok(number) => number,
+        Err(_) => {
+            println!("Invalid input.");
+            return (false, "".to_string());
+        }
+    };
+
+    if number > file_count || number <= 0 {
+        println!("Invalid number.");
+        return (false, "".to_string());
+    }
+
+    (true, file_name_array[number - 1].clone())
+}
 
 #[cfg(test)]
 mod tests {
@@ -328,10 +377,7 @@ mod tests {
 
     #[test]
     fn test_check_args_register_without_value() {
-        let args = vec![
-            String::from("program_name"),
-            String::from("-r"),
-        ];
+        let args = vec![String::from("program_name"), String::from("-r")];
 
         assert_eq!(check_args(args), PROCESS_FAILED);
     }
@@ -349,31 +395,31 @@ mod tests {
 
     #[test]
     fn test_check_args_copy_without_extension() {
-        let args = vec![
-            String::from("program_name"),
-            String::from("-c"),
-        ];
+        let args = vec![String::from("program_name"), String::from("-c")];
 
         assert_eq!(check_args(args), PROCESS_COPY_EXTENSION_WITHOUT);
     }
 
     #[test]
     fn test_check_args_invalid_option() {
-        let args = vec![
-            String::from("program_name"),
-            String::from("-x"),
-        ];
+        let args = vec![String::from("program_name"), String::from("-x")];
 
         assert_eq!(check_args(args), PROCESS_FAILED);
     }
 
     #[test]
     fn test_get_file_extension() {
-        assert_eq!(get_file_extension("exmaple.txt".to_string()), Some("txt".to_string()));
-    
+        assert_eq!(
+            get_file_extension("exmaple.txt".to_string()),
+            Some("txt".to_string())
+        );
+
         assert_eq!(get_file_extension("no_extention".to_string()), None);
 
-        assert_eq!(get_file_extension(".hidden".to_string()), Some("hidden".to_string()));
+        assert_eq!(
+            get_file_extension(".hidden".to_string()),
+            Some("hidden".to_string())
+        );
 
         assert_eq!(get_file_extension("".to_string()), None);
     }
@@ -419,7 +465,7 @@ mod tests {
     #[test]
     fn test_register_template_file() {
         let file_path = "example.txt";
-        let tempalte_dirname = "txt".to_string(); 
+        let tempalte_dirname = "txt".to_string();
 
         let mut file = match File::create(file_path) {
             Ok(file) => file,
@@ -446,7 +492,6 @@ mod tests {
                 return;
             }
         }
-
 
         let result = register_template_file(tempalte_dirname, file_path.to_string());
         let destination_path = extension_dir.join(file_path);
@@ -500,4 +545,44 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_select_copy_file() {
+        // create template and exetend dir
+        let extension_dir = dirs::home_dir().unwrap().join(".template").join("test");
+        if !extension_dir.exists() {
+            let template_dir = dirs::home_dir().unwrap().join(".template");
+            if template_dir.exists() {
+                if !create_extension_dir("test".to_string()) {
+                    eprintln!("Failed to create extend dir");
+                }
+            } else {
+                if create_tempalte_dir() {
+                    if !create_extension_dir("test".to_string()) {
+                        eprintln!("Failed to create extend dir");
+                    }
+                } else {
+                    eprintln!("Failed to create template dir");
+                }
+            }
+        }
+
+        // test file create
+        let file_names = ["file1", "file2", "file3"];
+        let selection_file = format!("{}/{}", extension_dir.to_string_lossy(), file_names[2]);
+
+        for (index, file_name) in file_names.iter().enumerate() {
+            let file_content = format!("This is test file {}", index);
+            let file_path = format!("{}/{}", extension_dir.to_string_lossy(), file_name);
+            fs::write(file_path, file_content).unwrap();
+        }
+
+        let (result, selected_file) =
+            select_copy_file(extension_dir.to_string_lossy().into_owned());
+
+        // test dir and test file delete
+        fs::remove_dir_all(extension_dir).unwrap();
+
+        assert!(result);
+        assert_eq!(selection_file, selected_file);
+    }
 }
