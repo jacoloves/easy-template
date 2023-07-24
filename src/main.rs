@@ -53,7 +53,7 @@ fn main() {
             return;
         }
 
-        println!("template file copy done!!");
+        println!("template file register done!!");
     } else if process_status == PROCESS_COPY_EXTENSION_WITHOUT {
         // select dir
         let (proc, selected_dir) = select_extension_dir();
