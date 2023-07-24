@@ -58,9 +58,14 @@ fn main() {
         // select dir
         let (proc, selected_dir) = select_extension_dir();
         if proc {
+            // select template file
             let (proc, selected_file) = select_copy_file(selected_dir);
             if proc {
-                println!("selected file: {}", selected_file);
+                // copy file
+                if !template_file_copy(selected_file) {
+                    return;
+                }
+                println!("template file copy done!!");
             } else {
                 println!("Failed to select file.");
             }
@@ -313,6 +318,52 @@ fn select_copy_file(dir_name: String) -> (bool, String) {
     }
 
     (true, file_name_array[number - 1].clone())
+}
+
+fn template_file_copy(template_file_name: String) -> bool {
+    // get current dir
+    let current_dir = match env::current_dir() {
+        Ok(dir) => dir,
+        Err(err) => {
+            println!("Failed to get current directory: {}", err);
+            return false;
+        }
+    };
+    // split extention
+    let components: Vec<&str> = template_file_name.split('.').collect();
+    // components lats element is extention
+    let extention = components.last().unwrap().to_string();    
+    // input file name
+    let input_file_name = get_user_input("Enter the file name: ").unwrap_or_else(|_| String::new());
+    // Copy template files to the current directory
+    // If the file name is not specified, the file name is the same as the template file name.
+    if input_file_name == "" {
+        let no_specified_file_name = "template".to_string() + "." + &extention;
+        let sorce_path = Path::new(&template_file_name).to_path_buf();
+        let destination_path = current_dir.join(no_specified_file_name.clone());
+        match fs::copy(&sorce_path, &destination_path) {
+            Ok(_) => println!("template file copy done!!"),
+            Err(err) => {
+                eprintln!("Failed to copy file: {}", err);
+                return false;
+            }
+        }
+        return true;
+    }
+    let specified_file_name = input_file_name.clone() + "." + &extention;
+    let sorce_path = Path::new(&template_file_name).to_path_buf();
+    let destination_path = current_dir.join(specified_file_name.clone());
+
+    match fs::copy(&sorce_path, &destination_path) {
+        Ok(_) => println!("{} copy done!!", specified_file_name),
+        Err(err) => {
+            eprintln!("Failed to copy file: {}", err);
+            return false;
+        }
+    }
+
+    return true;
+
 }
 
 #[cfg(test)]
