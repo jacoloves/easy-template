@@ -1,6 +1,6 @@
 use std::fs;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::{env, io};
 
 // const
@@ -193,7 +193,7 @@ fn create_extension_dir(dirname: String) -> bool {
     true
 }
 
-fn register_template_file(dirname: String, filename: String) -> bool {
+fn register_template_file(dirname: String, mut filename: String) -> bool {
     let home_dir = match env::var_os("HOME") {
         Some(path) => path,
         None => {
@@ -209,7 +209,14 @@ fn register_template_file(dirname: String, filename: String) -> bool {
         }
     };
 
-    let sorce_path = current_dir.join(filename.clone());
+    let sorce_path: PathBuf;
+    if is_contain_slash(filename.clone()) {
+        sorce_path = Path::new(&filename).to_path_buf();
+        filename = filename.split('/').last().unwrap().to_string();
+    } else {
+        sorce_path = current_dir.join(filename.clone());
+    };
+
     let destination_path = Path::new(&home_dir)
         .join(".template")
         .join(dirname)
@@ -364,6 +371,16 @@ fn template_file_copy(template_file_name: String) -> bool {
 
     return true;
 
+}
+
+// Determine if a slash is contained in the string
+fn is_contain_slash(string: String) -> bool {
+    let components: Vec<&str> = string.split('/').collect();
+    if components.len() > 1 {
+        true
+    } else {
+        false
+    }
 }
 
 #[cfg(test)]
