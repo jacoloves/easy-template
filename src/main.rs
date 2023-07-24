@@ -653,4 +653,46 @@ mod tests {
         assert!(result);
         assert_eq!(selection_file, selected_file);
     }
+
+    #[test]
+    fn test_template_file_copy() {
+        // create template and exetend dir
+        let extension_dir = dirs::home_dir().unwrap().join(".template").join("test");
+        if !extension_dir.exists() {
+            let template_dir = dirs::home_dir().unwrap().join(".template");
+            if template_dir.exists() {
+                if !create_extension_dir("test".to_string()) {
+                    eprintln!("Failed to create extend dir");
+                }
+            } else {
+                if create_tempalte_dir() {
+                    if !create_extension_dir("test".to_string()) {
+                        eprintln!("Failed to create extend dir");
+                    }
+                } else {
+                    eprintln!("Failed to create template dir");
+                }
+            }
+        }
+
+        // test file create
+        let file_names = ["file1", "file2", "file3"];
+
+        for (index, file_name) in file_names.iter().enumerate() {
+            let file_content = format!("This is test file {}", index);
+            let file_path = format!("{}/{}.txt", extension_dir.to_string_lossy(), file_name);
+            fs::write(file_path, file_content).unwrap();
+        }
+
+        let file_name = extension_dir.to_string_lossy().into_owned() + "/file3.txt";
+
+        println!("{}", file_name);
+        // test
+        let result = template_file_copy(file_name);
+
+        // test dir and test file delete
+        fs::remove_dir_all(extension_dir).unwrap();
+
+        assert!(result);
+    }
 }
