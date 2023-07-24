@@ -8,5 +8,28 @@ Easy-Template allows you to register templates and select and recall registered 
 
 ## Features
 - [x] Template registration function
-- [ ] Template call function (no extension specified)
-- [ ] Template call function (with extended specification)
+- [x] Template call function (no extension specified)
+- [x] Template call function (with extended specification)
+
+## Usage
+### Register template
+```bash
+$ easy-template -r <filename>
+```
+
+### Call template
+```bash
+$ easy-template -c
+```
+or
+```bash
+$ easy-template -c <exetension_name>
+```
+
+## Installation
+```bash
+$ cargo install --git
+```
+
+## License
+Distributed under the MIT License. See `LICENSE`.
