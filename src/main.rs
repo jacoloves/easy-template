@@ -69,8 +69,26 @@ fn main() {
             } else {
                 println!("Failed to select file.");
             }
-        } else {
+        } 
+        else {
             println!("Failed to select dir.");
+        }
+    } else if process_status == PROCESS_COPY_EXTENSION_EXIST {
+        let extension_dir = dirs::home_dir().unwrap().join(".template").join(args[2].clone());
+        if !extension_dir.exists() {
+            println!("Could not find extension directory.");
+            return;
+        }
+        // select template file
+        let (proc, selected_file) = select_copy_file(extension_dir.to_string_lossy().into_owned());
+        if proc {
+            // copy file
+            if !template_file_copy(selected_file) {
+                return;
+            }
+            println!("template file copy done!!");
+        } else {
+            println!("Failed to select file.");
         }
     }
 }
@@ -694,5 +712,14 @@ mod tests {
         fs::remove_dir_all(extension_dir).unwrap();
 
         assert!(result);
+    }
+
+    #[test]
+    fn test_is_contain_slash() {
+        let string = "example.txt".to_string();
+        assert_eq!(is_contain_slash(string), false);
+
+        let string = "example/example.txt".to_string();
+        assert_eq!(is_contain_slash(string), true);
     }
 }
